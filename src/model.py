@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import numpy as np
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import KFold, train_test_split
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error, r2_score
 import optuna
@@ -12,9 +12,15 @@ print("Model script starting...")
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 path_to_data_folder = os.path.join(project_root, 'data')
 
-# Load data
-train = pd.read_csv(os.path.join(path_to_data_folder, 'train.csv'))
-test = pd.read_csv(os.path.join(path_to_data_folder, 'test.csv'))
+#Load data
+#train = pd.read_csv(os.path.join(path_to_data_folder, 'train.csv'))
+#test = pd.read_csv(os.path.join(path_to_data_folder, 'test.csv')) 
+
+full_data = pd.read_csv(os.path.join(path_to_data_folder, 'train.csv'))
+
+#calling my holdout set "test"
+train, test = train_test_split(full_data, test_size=0.15, random_state=42)
+
 
 test_timestamps = test['Timestamp']
 
@@ -224,14 +230,25 @@ model = xgb.XGBRegressor(
 model.fit(X, y)
 
 # Predict on test set
-final_preds = model.predict(test)
+X_test = test.drop(columns=['Water_Consumption'])
+y_test = test['Water_Consumption']
 
+
+final_preds = model.predict(X_test)
+
+rmse = 100 - np.sqrt(mean_squared_error(y_test, final_preds))
+r2 = r2_score(y_test, final_preds)
+
+print(f"Holdout 100 - RMSE: {rmse:.4f}")
+print(f"Holdout R²: {r2:.4f}")
+
+""" 
 #SUBMIT
 submission = pd.DataFrame({
     'Timestamp': test_timestamps,
     'Water_Consumption': final_preds
 })
 submission.to_csv('../submission/submission.csv', index=False)
-
+"""
 
 print("done")
